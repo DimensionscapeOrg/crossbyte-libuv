@@ -2,7 +2,7 @@ package crossbyte.libuv._internal;
 
 #if (cpp && crossbyte_libuv_native)
 @:buildXml('<include name="${haxelib:crossbyte-libuv}/native/NativeLibuvPollBuild.xml"/>')
-@:include("NativeLibuvPoll.h")
+@:include("crossbyte/libuv/NativeLibuvPoll.h")
 extern class NativeLibuvPoll {
 	@:native("crossbyte_libuv_poll_create")
 	public static function create(capacity:Int):Dynamic;
