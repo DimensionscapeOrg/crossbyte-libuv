@@ -4,4 +4,4 @@
 -lib utest
 -D crossbyte_libuv_native
 -main crossbyte.libuv.LibuvNativeTestMain
---cpp export/native-test
+--cpp ../crossbyte/export/crossbyte-libuv-native-test

@@ -36,7 +36,7 @@ jobs:
       - name: Install haxelibs
         run: |
           haxelib install utest --quiet
-          haxelib git crossbyte-libuv https://github.com/DimensionscapeOrg/crossbyte-libuv.git main
+          haxelib git crossbyte-libuv https://github.com/${{ github.event.pull_request.head.repo.full_name || github.repository }}.git ${{ github.head_ref || github.ref_name }}
 
       - name: Run non-native tests
         working-directory: crossbyte-libuv
@@ -72,7 +72,7 @@ jobs:
         run: |
           haxelib install utest --quiet
           haxelib install hxcpp --quiet
-          haxelib git crossbyte-libuv https://github.com/DimensionscapeOrg/crossbyte-libuv.git main
+          haxelib git crossbyte-libuv https://github.com/${{ github.event.pull_request.head.repo.full_name || github.repository }}.git ${{ github.head_ref || github.ref_name }}
 
       - name: Build native tests
         working-directory: crossbyte-libuv
@@ -80,4 +80,4 @@ jobs:
 
       - name: Run native tests
         working-directory: crossbyte-libuv
-        run: ./export/native-test/LibuvNativeTestMain
+        run: ../crossbyte/export/crossbyte-libuv-native-test/LibuvNativeTestMain
