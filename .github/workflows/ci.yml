@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Haxe tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout extension
+        uses: actions/checkout@v4
+
+      - name: Checkout CrossByte
+        uses: actions/checkout@v4
+        with:
+          repository: DimensionscapeOrg/crossbyte
+          path: crossbyte
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: "4.3.7"
+
+      - name: Install haxelibs
+        run: |
+          haxelib install utest --quiet
+          haxelib dev crossbyte ./crossbyte
+          haxelib dev crossbyte-libuv .
+
+      - name: Run non-native tests
+        run: haxe test.hxml
+
+  native-libuv:
+    name: Native libuv backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout extension
+        uses: actions/checkout@v4
+
+      - name: Checkout CrossByte
+        uses: actions/checkout@v4
+        with:
+          repository: DimensionscapeOrg/crossbyte
+          path: crossbyte
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: "4.3.7"
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev
+
+      - name: Install haxelibs
+        run: |
+          haxelib install utest --quiet
+          haxelib install hxcpp --quiet
+          haxelib dev crossbyte ./crossbyte
+          haxelib dev crossbyte-libuv .
+
+      - name: Build native tests
+        run: haxe native-test.hxml
+
+      - name: Run native tests
+        run: ./export/native-test/LibuvNativeTestMain

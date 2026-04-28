@@ -1,0 +1,6 @@
+.haxelib/
+export/
+bin/
+build/
+*.log
+*.tmp

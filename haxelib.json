@@ -1,0 +1,16 @@
+{
+	"name": "crossbyte-libuv",
+	"url": "https://github.com/DimensionscapeOrg/crossbyte-libuv",
+	"license": "Apache",
+	"tags": ["crossbyte", "libuv", "networking", "poll", "cpp"],
+	"description": "Optional libuv poll backend extension for CrossByte",
+	"version": "0.0.1",
+	"releasenote": "Initial extension scaffold",
+	"contributors": [
+		"Dimensionscape"
+	],
+	"dependencies": {
+		"crossbyte": ""
+	},
+	"classPath": "src"
+}
