@@ -25,7 +25,7 @@ class Main {
 Native support is opt-in:
 
 ```sh
-haxe -lib crossbyte -lib crossbyte-libuv -D crossbyte_libuv_native --cpp export/app -main Main
+haxe -cp path/to/crossbyte/src -lib crossbyte-libuv -D crossbyte_libuv_native --cpp export/app -main Main
 ```
 
 The native build expects libuv headers and libraries to be available to hxcpp.
@@ -41,8 +41,7 @@ Without `-D crossbyte_libuv_native`, the package still type-checks and
 From this repo, point haxelib at your local CrossByte checkout:
 
 ```sh
-haxelib dev crossbyte ../crossbyte
-haxelib dev crossbyte-libuv .
+haxelib git crossbyte-libuv https://github.com/DimensionscapeOrg/crossbyte-libuv.git main
 haxelib install utest
 haxe test.hxml
 ```

@@ -9,8 +9,5 @@
 	"contributors": [
 		"Dimensionscape"
 	],
-	"dependencies": {
-		"crossbyte": ""
-	},
 	"classPath": "src"
 }
