@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout extension
         uses: actions/checkout@v4
+        with:
+          path: crossbyte-libuv
 
       - name: Checkout CrossByte
         uses: actions/checkout@v4
@@ -34,10 +36,10 @@ jobs:
       - name: Install haxelibs
         run: |
           haxelib install utest --quiet
-          haxelib dev crossbyte ./crossbyte
-          haxelib dev crossbyte-libuv .
+          haxelib dev crossbyte-libuv ./crossbyte-libuv
 
       - name: Run non-native tests
+        working-directory: crossbyte-libuv
         run: haxe test.hxml
 
   native-libuv:
@@ -47,6 +49,8 @@ jobs:
     steps:
       - name: Checkout extension
         uses: actions/checkout@v4
+        with:
+          path: crossbyte-libuv
 
       - name: Checkout CrossByte
         uses: actions/checkout@v4
@@ -68,11 +72,12 @@ jobs:
         run: |
           haxelib install utest --quiet
           haxelib install hxcpp --quiet
-          haxelib dev crossbyte ./crossbyte
-          haxelib dev crossbyte-libuv .
+          haxelib dev crossbyte-libuv ./crossbyte-libuv
 
       - name: Build native tests
+        working-directory: crossbyte-libuv
         run: haxe native-test.hxml
 
       - name: Run native tests
+        working-directory: crossbyte-libuv
         run: ./export/native-test/LibuvNativeTestMain

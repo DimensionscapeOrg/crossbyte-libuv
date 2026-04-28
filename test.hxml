@@ -1,6 +1,6 @@
 -cp src
+-cp ../crossbyte/src
 -cp tests
--lib crossbyte
 -lib utest
 -main TestMain
 --interp
