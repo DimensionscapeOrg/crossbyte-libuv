@@ -2,10 +2,9 @@
 
 Optional libuv poll backend extension for CrossByte.
 
-CrossByte core provides the public `crossbyte.net.poll.PollBackend` contract and
-keeps its built-in Haxe/hxcpp poll backend as the fallback. This package adds a
-libuv-backed implementation that can be registered by applications that want a
-native event backend.
+CrossByte core keeps its built-in Haxe/hxcpp poll backend as the fallback. This
+package installs a libuv-backed implementation through CrossByte's internal poll
+backend seam.
 
 ## Usage
 

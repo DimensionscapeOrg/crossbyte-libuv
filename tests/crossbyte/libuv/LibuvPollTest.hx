@@ -1,6 +1,6 @@
 package crossbyte.libuv;
 
-import crossbyte.net.poll.PollBackendRegistry;
+import crossbyte._internal.socket.poll.PollBackendRegistry;
 import sys.net.Host;
 import sys.net.Socket as SysSocket;
 import utest.Assert;
@@ -20,11 +20,9 @@ class LibuvPollTest extends utest.Test {
 
 		#if (cpp && crossbyte_libuv_native)
 		Assert.isTrue(installed);
-		Assert.isTrue(PollBackendRegistry.hasCustomBackend());
 		Assert.isTrue(LibuvPoll.uninstall());
 		#else
 		Assert.isFalse(installed);
-		Assert.isFalse(PollBackendRegistry.hasCustomBackend());
 		#end
 
 		PollBackendRegistry.clear();
@@ -46,9 +44,9 @@ class LibuvPollTest extends utest.Test {
 			client.connect(new Host("127.0.0.1"), server.host().port);
 
 			backend.prepare([server], []);
-			var events = backend.events(1.0);
+			backend.events(1.0);
 
-			Assert.equals(0, events.readIndexes[0]);
+			Assert.equals(0, backend.readIndexes[0]);
 			peer = server.accept();
 		} catch (e:Dynamic) {
 			closeQuietly(peer);

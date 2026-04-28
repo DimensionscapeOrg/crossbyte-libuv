@@ -1,8 +1,7 @@
 package crossbyte.libuv;
 
 import crossbyte.libuv._internal.NativeLibuvPoll;
-import crossbyte.net.poll.PollBackend;
-import crossbyte.net.poll.PollEvents;
+import crossbyte._internal.socket.poll.PollBackend;
 import sys.net.Socket;
 
 class LibuvPollBackend implements PollBackend {
@@ -11,6 +10,8 @@ class LibuvPollBackend implements PollBackend {
 	private var __disposed:Bool = false;
 
 	public var capacity(get, never):Int;
+	public var readIndexes(default, null):Array<Int> = [-1];
+	public var writeIndexes(default, null):Array<Int> = [-1];
 
 	private inline function get_capacity():Int {
 		return __capacity;
@@ -35,19 +36,20 @@ class LibuvPollBackend implements PollBackend {
 		#end
 	}
 
-	public function events(timeout:Float):PollEvents {
+	public function events(timeout:Float):Void {
 		#if (cpp && crossbyte_libuv_native)
 		if (__disposed) {
-			return {readIndexes: [-1], writeIndexes: [-1]};
+			readIndexes[0] = -1;
+			writeIndexes[0] = -1;
+			return;
 		}
 
 		var result = NativeLibuvPoll.events(__handle, timeout);
-		return {
-			readIndexes: result[0],
-			writeIndexes: result[1]
-		};
+		readIndexes = result[0];
+		writeIndexes = result[1];
 		#else
-		return {readIndexes: [-1], writeIndexes: [-1]};
+		readIndexes[0] = -1;
+		writeIndexes[0] = -1;
 		#end
 	}
 

@@ -1,11 +1,10 @@
 package crossbyte.libuv;
 
-import crossbyte.net.poll.PollBackend;
-import crossbyte.net.poll.PollBackendFactory;
-import crossbyte.net.poll.PollBackendRegistry;
+import crossbyte._internal.socket.poll.PollBackend;
+import crossbyte._internal.socket.poll.PollBackendRegistry;
 
 class LibuvPoll {
-	private static var __factory:PollBackendFactory = createBackend;
+	private static var __factory:Int->PollBackend = createBackend;
 
 	public static function install():Bool {
 		if (!isAvailable()) {
