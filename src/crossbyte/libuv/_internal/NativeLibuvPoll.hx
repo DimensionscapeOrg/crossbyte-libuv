@@ -38,11 +38,18 @@ extern class NativeLibuvPoll {
 	@:native("crossbyte_libuv_poll_create")
 	public static function create(capacity:Int):Dynamic;
 
+	/** Returns the read and write index arrays `events` fills from then on. **/
 	@:native("crossbyte_libuv_poll_prepare")
-	public static function prepare(handle:Dynamic, read:Array<sys.net.Socket>, write:Array<sys.net.Socket>):Void;
+	public static function prepare(handle:Dynamic, read:Array<sys.net.Socket>, write:Array<sys.net.Socket>):Array<Array<Int>>;
 
 	@:native("crossbyte_libuv_poll_events")
-	public static function events(handle:Dynamic, timeout:Float):Array<Array<Int>>;
+	public static function events(handle:Dynamic, timeout:Float):Void;
+
+	@:native("crossbyte_libuv_poll_remove")
+	public static function remove(handle:Dynamic, socket:sys.net.Socket):Void;
+
+	@:native("crossbyte_libuv_poll_stats")
+	public static function stats(handle:Dynamic):Array<Int>;
 
 	@:native("crossbyte_libuv_poll_dispose")
 	public static function dispose(handle:Dynamic):Void;

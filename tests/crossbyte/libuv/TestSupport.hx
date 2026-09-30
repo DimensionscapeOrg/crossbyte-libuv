@@ -6,7 +6,13 @@ import sys.net.Host;
 import sys.net.Socket as SysSocket;
 import sys.net.UdpSocket;
 
-/** Sockets for the native tests. **/
+/**
+	Sockets and a few POSIX calls for the native tests. The POSIX ones answer
+	-1 (or do nothing) where they are not built.
+**/
+#if (cpp && linux)
+@:cppFileCode("#include <unistd.h>\n#include <sys/resource.h>\n#include <time.h>\nstruct CrossByteLibuvTestSocket : public hx::Object { int socket; };\n")
+#end
 class TestSupport {
 	private static var __ports:Map<Int, Bool> = new Map();
 
@@ -86,5 +92,41 @@ class TestSupport {
 			result.push(index);
 		}
 		return result;
+	}
+
+	/** The descriptor under a socket. **/
+	public static function descriptor(socket:SysSocket):Int {
+		#if (cpp && linux)
+		var handle:Dynamic = @:privateAccess socket.__s;
+		return untyped __cpp__("reinterpret_cast<CrossByteLibuvTestSocket*>({0}.mPtr)->socket", handle);
+		#else
+		return -1;
+		#end
+	}
+
+	/** A second descriptor for the same socket, as a child process holds one. **/
+	public static function duplicate(descriptor:Int):Int {
+		#if (cpp && linux)
+		return untyped __cpp__("::dup({0})", descriptor);
+		#else
+		return -1;
+		#end
+	}
+
+	public static function closeDescriptor(descriptor:Int):Void {
+		#if (cpp && linux)
+		if (descriptor >= 0) {
+			untyped __cpp__("::close({0})", descriptor);
+		}
+		#end
+	}
+
+	/** CPU seconds this thread has used. **/
+	public static function threadCpuTime():Float {
+		#if (cpp && linux)
+		return untyped __cpp__("([]() { struct timespec t; clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t); return (double)t.tv_sec + t.tv_nsec / 1e9; })()");
+		#else
+		return -1;
+		#end
 	}
 }

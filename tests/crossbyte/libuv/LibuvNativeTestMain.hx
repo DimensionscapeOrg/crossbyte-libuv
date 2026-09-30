@@ -28,7 +28,12 @@ class LibuvNativeTestMain {
 		return [
 			new LibuvPollTest(),
 			#if (cpp && crossbyte_libuv_native)
+			new LibuvWatcherTest(),
 			new LibuvTimeoutTest(),
+			new LibuvRuntimeTest(),
+			#if linux
+			new LibuvStaleRegistrationTest(),
+			#end
 			#end
 		];
 	}

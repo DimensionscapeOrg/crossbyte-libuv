@@ -5,6 +5,29 @@ All notable changes to crossbyte-libuv will be documented in this file.
 ## Unreleased
 
 ### Fixed
+- A change to the socket set costs what changed. Every register or
+  deregister closed every watcher, ran the loop until they were freed and
+  made them all again, each found by a linear scan: 3.7 ms per change at
+  1,000 sockets, 22.6 ms at 4,000 and 75 ms at 10,000, measured, where the
+  built-in backend takes 0.1, 0.34 and 2.3 ms. Watchers are now kept from
+  one prepare to the next: a change costs 5.3, 28 and 44 us, since a socket
+  in the same place as last time is a pointer compare. They are found by
+  descriptor, and one whose descriptor now belongs to another socket is
+  replaced, so a reused descriptor is polled for its new socket.
+  `bench/PollBench.hx` measures it against the built-in backend.
+- A socket closed while it is still polled is let go without disturbing
+  the loop. CrossByte closes a socket and deregisters it afterwards; libuv
+  needs polling stopped first, and when another process holds the socket,
+  a child that inherited it, its epoll registration outlives the close
+  and cannot be removed any more. libuv then re-polled without sleeping for
+  the whole of every wait (189,806 `epoll_wait` calls in one 100 ms wait),
+  or, once the descriptor went to a new socket, reported that socket ready
+  on every call with nothing to read. The backend now leaves such a watcher
+  in place as a tombstone, and a tombstone that fires, or a socket
+  reported 64 calls in a row that `poll(2)` says is not ready, moves the
+  live watchers to a fresh loop, whose epoll set does not have the stale
+  registration. `LibuvPollBackend.remove(socket)` stops polling a socket
+  at once, for a caller that can do it before the close.
 - A host-driven runtime polls its sockets when it is given a socket
   timeout. `HostApplication.advance(delta, socketTimeout)`, a host
   pumping once a frame with a few milliseconds to wait, saw no socket

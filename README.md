@@ -4,8 +4,20 @@ Optional libuv poll backend extension for CrossByte.
 
 CrossByte core polls its sockets with its built-in backend (`poll(2)` on
 native builds). This package installs a libuv-backed one through CrossByte's
-internal poll backend seam: one `uv_poll_t` per socket, so a wait costs what
-libuv's epoll, kqueue or IOCP wait costs rather than a scan of every socket.
+internal poll backend seam: one `uv_poll_t` per socket, kept for as long as
+the socket is registered, so a wait costs what libuv's epoll, kqueue or IOCP
+wait costs rather than a scan of every socket.
+
+Measured on Linux (WSL2, libuv 1.48, `bench/PollBench.hx`), per call:
+
+| Sockets | Join or leave, built-in | Join or leave, libuv | Wait with 8 ready, built-in | Wait with 8 ready, libuv |
+| --- | --- | --- | --- | --- |
+| 1,000 | 114 us | 5.3 us | 81 us | 1.4 us |
+| 4,000 | 343 us | 28 us | 380 us | 1.2 us |
+| 10,000 | 2,268 us | 44 us | 1,632 us | 1.2 us |
+
+Making the libuv backend's first watchers for a set costs more than the
+built-in's (32 ms for 10,000 sockets), once.
 
 ## Usage
 
@@ -104,6 +116,7 @@ haxe test.hxml                  # interpreter: the API without native support
 haxe native-test.hxml           # native tests, into ../crossbyte/export/crossbyte-libuv-native-test
 ../crossbyte/export/crossbyte-libuv-native-test/LibuvNativeTestMain
 haxe js-check.hxml && node export/js-check/node.js   # LibuvPoll compiles for Node and the browser
+haxe bench.hxml && export/bench/PollBench             # needs `ulimit -n` above 10,000
 ```
 
 `CB_ONLY=<class name part>` runs some of the native test classes.
