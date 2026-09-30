@@ -98,7 +98,9 @@ class LibuvRuntimeTest extends utest.Test {
 		backend.prepare([], null);
 		var after = backend.stats();
 		Assert.equals(0, after.watchers, 'watchers left behind: ${after.watchers}');
-		Assert.equals(connections, after.created - before.created);
+		// One watcher for each connection, and one for the listener: core
+		// watches listeners through the backend as well (dc59281).
+		Assert.equals(connections + 1, after.created - before.created, "watchers made for 200 connections and their listener");
 		Assert.equals(0, after.purges - before.purges);
 		Assert.equals(0, after.dropped - before.dropped);
 	}
