@@ -1,5 +1,5 @@
 -cp src
--cp ../crossbyte/src
+-lib crossbyte
 -cp tests
 -lib utest
 -main TestMain

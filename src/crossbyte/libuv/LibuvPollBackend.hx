@@ -1,5 +1,8 @@
 package crossbyte.libuv;
 
+// Not built for JavaScript: there is no socket set there to poll, and core's
+// poll backend registry does not exist on either JavaScript target.
+#if !js
 import crossbyte.libuv._internal.NativeLibuvPoll;
 import crossbyte._internal.socket.poll.PollBackend;
 import sys.net.Socket;
@@ -65,3 +68,4 @@ class LibuvPollBackend implements PollBackend {
 		#end
 	}
 }
+#end

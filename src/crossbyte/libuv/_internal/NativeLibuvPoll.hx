@@ -1,6 +1,12 @@
 package crossbyte.libuv._internal;
 
 #if (cpp && crossbyte_libuv_native)
+// The linker flags follow the compiler, not the OS: `-libpath:` and `.lib`
+// names are MSVC's, and handing `-libpath:` to GCC or Clang failed every
+// non-Windows link that set LIBUV_LIB. With MSVC, `uv.lib` is the import
+// library of libuv's `uv.dll`, which then has to ship beside the executable;
+// `-D LIBUV_STATIC` links the static `libuv.lib` instead. Both names are
+// what libuv's CMake build produces.
 @:buildXml("
 <files id='haxe'>
 	<compilerflag value='-I${haxelib:crossbyte-libuv}/native'/>
@@ -11,14 +17,20 @@ package crossbyte.libuv._internal;
 </files>
 
 <target id='haxe'>
-	<lib name='-L${LIBUV_LIB}' if='LIBUV_LIB' unless='windows'/>
-	<lib name='-luv' unless='windows'/>
-	<flag value='-libpath:${LIBUV_LIB}' if='LIBUV_LIB'/>
-	<lib name='uv.lib' if='windows'/>
-	<lib name='ws2_32.lib' if='windows'/>
-	<lib name='iphlpapi.lib' if='windows'/>
-	<lib name='psapi.lib' if='windows'/>
-	<lib name='userenv.lib' if='windows'/>
+	<lib name='-L${LIBUV_LIB}' if='LIBUV_LIB' unless='isMsvc'/>
+	<lib name='-luv' unless='isMsvc'/>
+	<flag value='-libpath:${LIBUV_LIB}' if='LIBUV_LIB isMsvc'/>
+	<lib name='uv.lib' if='isMsvc' unless='LIBUV_STATIC'/>
+	<lib name='libuv.lib' if='isMsvc LIBUV_STATIC'/>
+	<lib name='ws2_32.lib' if='isMsvc'/>
+	<lib name='iphlpapi.lib' if='isMsvc'/>
+	<lib name='psapi.lib' if='isMsvc'/>
+	<lib name='userenv.lib' if='isMsvc'/>
+	<lib name='user32.lib' if='isMsvc'/>
+	<lib name='advapi32.lib' if='isMsvc'/>
+	<lib name='dbghelp.lib' if='isMsvc'/>
+	<lib name='ole32.lib' if='isMsvc'/>
+	<lib name='shell32.lib' if='isMsvc'/>
 </target>
 ")
 @:include("NativeLibuvPoll.h")
