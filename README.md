@@ -111,8 +111,9 @@ not where the compiler looks by default.
 
 ## Local Development
 
-With the haxelibs above set up and CrossByte checked out beside this
-repository (`../crossbyte`):
+With the haxelibs above set up, `utest` installed (and `hxnodejs` for the
+JavaScript check), and CrossByte checked out beside this repository
+(`../crossbyte`):
 
 ```sh
 haxe test.hxml                  # interpreter: the API without native support
