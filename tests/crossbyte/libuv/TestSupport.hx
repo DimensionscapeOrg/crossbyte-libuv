@@ -21,9 +21,12 @@ class TestSupport {
 		here has had. hxcpp sets SO_REUSEADDR before binding, and Linux then
 		hands two UDP sockets the same ephemeral port now and then, 27 of
 		1,500 once, and only one of them receives what is sent to it.
+
+		A socket that drew a taken port is closed before the next try, so the
+		one returned still gets the lowest free descriptor: the tests that
+		reuse a closed socket's descriptor depend on it.
 	**/
 	public static function udp():UdpSocket {
-		var shared:Array<UdpSocket> = [];
 		while (true) {
 			var socket = new UdpSocket();
 			socket.bind(new Host("127.0.0.1"), 0);
@@ -31,12 +34,9 @@ class TestSupport {
 			var port = socket.host().port;
 			if (!__ports.exists(port)) {
 				__ports.set(port, true);
-				for (other in shared) {
-					closeQuietly(other);
-				}
 				return socket;
 			}
-			shared.push(socket);
+			closeQuietly(socket);
 		}
 	}
 
