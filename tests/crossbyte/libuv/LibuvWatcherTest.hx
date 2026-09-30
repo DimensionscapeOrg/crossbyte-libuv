@@ -56,6 +56,40 @@ class LibuvWatcherTest extends utest.Test {
 		TestSupport.closeAll([extra, gone, sender]);
 	}
 
+	// The write list: nothing in CrossByte passes one yet, but a registry
+	// that watches connecting sockets for writability will. A socket moving
+	// between the lists keeps its watcher, which is restarted with the new
+	// interest.
+	public function testWriteInterestIsPolledAndChanged():Void {
+		var backend = new LibuvPollBackend(16);
+		var socket = TestSupport.udp();
+		var other = TestSupport.udp();
+		var sender = TestSupport.udp();
+
+		backend.prepare([other], [socket]);
+		backend.events(0.5);
+		Assert.same([], TestSupport.ready(backend.readIndexes));
+		Assert.same([0], TestSupport.ready(backend.writeIndexes));
+
+		// Readable and writable, in both lists.
+		backend.prepare([other, socket], [socket]);
+		TestSupport.poke(sender, socket);
+		Assert.same([1], waitForReady(backend, 2.0));
+		Assert.same([0], TestSupport.ready(backend.writeIndexes));
+		TestSupport.drain(socket);
+		backend.events(0);
+
+		// Back to reading only: no longer reported writable.
+		backend.prepare([other, socket], []);
+		backend.events(0.05);
+		Assert.same([], TestSupport.ready(backend.writeIndexes));
+		Assert.equals(2, backend.stats().created);
+		Assert.equals(0, backend.stats().retired);
+
+		backend.dispose();
+		TestSupport.closeAll([socket, other, sender]);
+	}
+
 	// A closed socket, or a null, among the sockets used to fail the prepare
 	// with a throw, and the registry, left dirty, prepared again and threw
 	// again at every update after, so nothing was polled for good.
