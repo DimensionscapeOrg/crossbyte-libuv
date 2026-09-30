@@ -4,6 +4,15 @@ All notable changes to crossbyte-libuv will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+- A host-driven runtime polls its sockets when it is given a socket
+  timeout. `HostApplication.advance(delta, socketTimeout)`, a host
+  pumping once a frame with a few milliseconds to wait, saw no socket
+  events while its socket set stayed the same: the wait's timer was armed
+  from the loop's cached clock, a frame old and so already past the
+  deadline, and libuv runs due timers before it polls, so the timer ended
+  every wait before its poll. The timer is armed from the time now.
+
 ### Changed
 - `LibuvPoll.install()` and `uninstall()` throw `IllegalOperationError` once
   a CrossByte runtime exists. A runtime asks for its backend when it is made

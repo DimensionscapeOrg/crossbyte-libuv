@@ -319,6 +319,11 @@ Array<Dynamic> crossbyte_libuv_poll_events(Dynamic handle, double timeout) {
 	data->writeReady.clear();
 
 	if (timeout > 0) {
+		// From the time now, not the time the loop last looked: a host that
+		// pumps every 16 ms with a 5 ms budget armed a timer already due, and
+		// libuv runs due timers before it polls, so the wait ended before it
+		// began and no socket event was ever seen.
+		uv_update_time(data->loop);
 		uint64_t timeoutMs = (uint64_t)std::ceil(timeout * 1000.0);
 		uv_timer_start(&data->timer, crossbyte_libuv_on_timer, timeoutMs, 0);
 	}

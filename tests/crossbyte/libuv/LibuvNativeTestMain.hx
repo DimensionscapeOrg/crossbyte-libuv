@@ -27,6 +27,9 @@ class LibuvNativeTestMain {
 	private static function cases():Array<utest.Test> {
 		return [
 			new LibuvPollTest(),
+			#if (cpp && crossbyte_libuv_native)
+			new LibuvTimeoutTest(),
+			#end
 		];
 	}
 }
