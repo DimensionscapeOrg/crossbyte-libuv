@@ -32,12 +32,16 @@ class LibuvPollBackend implements PollBackend {
 	/**
 		Starts a libuv loop for up to `capacity` sockets (a sizing hint: it
 		grows past it). Throws when the extension was not compiled with
-		`-D crossbyte_libuv_native`.
+		`-D crossbyte_libuv_native`, or when libuv cannot start a loop;
+		`LibuvPoll.createBackend` answers null for both instead.
 	**/
 	public function new(capacity:Int) {
 		#if (cpp && crossbyte_libuv_native)
 		__capacity = capacity;
 		__handle = NativeLibuvPoll.create(capacity);
+		if (__handle == null) {
+			throw "crossbyte-libuv could not start a libuv loop";
+		}
 		var indexes = NativeLibuvPoll.prepare(__handle, null, null);
 		readIndexes = indexes[0];
 		writeIndexes = indexes[1];

@@ -5,6 +5,16 @@ All notable changes to crossbyte-libuv will be documented in this file.
 ## Unreleased
 
 ### Fixed
+- A backend failure no longer takes the runtime with it. The factory threw
+  where CrossByte's registry expects null, so a libuv that could not start
+  a loop, out of descriptors, as a busy server is when it grows past its
+  socket capacity, failed the runtime instead of leaving it on the
+  built-in backend; now it answers null and the registry falls back. A
+  closed socket, or anything else that cannot be polled, among the sockets
+  is left out rather than thrown on: the throw left the registry dirty, so
+  every update after prepared again and threw again, and nothing was
+  polled for good. `LibuvPoll.createBackend` answers null off native
+  builds too, where it threw.
 - Each ready socket is reported once per wait. libuv takes 1,024 events
   from the kernel at a time and polls again, without blocking, while a
   batch comes back full, up to 48 times, and a level-triggered socket

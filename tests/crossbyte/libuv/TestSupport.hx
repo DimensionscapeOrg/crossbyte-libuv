@@ -129,4 +129,13 @@ class TestSupport {
 		return -1;
 		#end
 	}
+
+	/** Sets the soft descriptor limit; answers the one it replaced. **/
+	public static function setDescriptorLimit(soft:Int):Int {
+		#if (cpp && linux)
+		return untyped __cpp__("([](int soft) { struct rlimit r; getrlimit(RLIMIT_NOFILE, &r); int old = (int)r.rlim_cur; r.rlim_cur = (rlim_t)soft; setrlimit(RLIMIT_NOFILE, &r); return old; })({0})", soft);
+		#else
+		return -1;
+		#end
+	}
 }

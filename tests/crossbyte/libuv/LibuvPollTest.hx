@@ -78,12 +78,50 @@ class LibuvPollTest extends utest.Test {
 		backend.dispose();
 		TestSupport.closeAll([peer, client, server]);
 	}
+
+	// The factory threw where the registry expects null, so a libuv that
+	// could not start took the runtime down instead of leaving it on the
+	// built-in backend. A bad capacity used to come back as a backend with
+	// no loop, which threw at its first use.
+	public function testFactoryAnswersNullWhenNoLoopCanStart():Void {
+		Assert.isNull(LibuvPoll.createBackend(-1));
+		Assert.isNull(LibuvPoll.createBackend(2000000));
+
+		#if linux
+		// Out of descriptors: libuv cannot make its epoll set.
+		var probe = TestSupport.udp();
+		var previous = TestSupport.setDescriptorLimit(TestSupport.descriptor(probe) + 1);
+		var direct:Dynamic = null;
+		var viaRegistry:Dynamic = null;
+		var failure:Dynamic = null;
+		try {
+			direct = LibuvPoll.createBackend(16);
+			viaRegistry = PollBackendRegistry.create(16);
+		} catch (e:Dynamic) {
+			failure = e;
+		}
+		TestSupport.setDescriptorLimit(previous);
+		TestSupport.closeQuietly(probe);
+
+		Assert.isNull(failure, 'creating a backend threw: $failure');
+		Assert.isNull(direct);
+		Assert.notNull(viaRegistry);
+		Assert.isFalse(Std.isOfType(viaRegistry, LibuvPollBackend));
+		if (viaRegistry != null) {
+			viaRegistry.dispose();
+		}
+		#end
+	}
 	#else
 	public function testInstallAnswersFalseWithoutNativeSupport():Void {
 		Assert.isFalse(LibuvPoll.install());
 		Assert.isFalse(LibuvPoll.isInstalled());
 		Assert.isFalse(LibuvPoll.uninstall());
 		Assert.isFalse(LibuvPoll.isActive());
+	}
+
+	public function testFactoryAnswersNullWithoutNativeSupport():Void {
+		Assert.isNull(LibuvPoll.createBackend(16));
 	}
 	#end
 }

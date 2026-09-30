@@ -56,6 +56,25 @@ class LibuvWatcherTest extends utest.Test {
 		TestSupport.closeAll([extra, gone, sender]);
 	}
 
+	// A closed socket, or a null, among the sockets used to fail the prepare
+	// with a throw, and the registry, left dirty, prepared again and threw
+	// again at every update after, so nothing was polled for good.
+	public function testUnpollableEntriesAreLeftOut():Void {
+		var backend = new LibuvPollBackend(16);
+		var closed = TestSupport.udp();
+		var live = TestSupport.udp();
+		var sender = TestSupport.udp();
+		closed.close();
+
+		backend.prepare([closed, null, live], null);
+		TestSupport.poke(sender, live);
+		Assert.same([2], waitForReady(backend, 2.0));
+		Assert.equals(1, backend.stats().watchers);
+
+		backend.dispose();
+		TestSupport.closeAll([live, sender]);
+	}
+
 	// Watchers are found by descriptor now, and descriptors are reused: a
 	// socket that takes a closed one's number must get its own watcher, not
 	// inherit the old one's registration.
@@ -88,6 +107,27 @@ class LibuvWatcherTest extends utest.Test {
 
 		backend.dispose();
 		TestSupport.closeAll([keep, second, sender]);
+	}
+
+	// The same, with the new socket arriving while the closed one is still
+	// in the list, as when a socket is closed and another accepted in one
+	// dispatch pass.
+	public function testReusedDescriptorWhileTheClosedSocketIsStillListed():Void {
+		var backend = new LibuvPollBackend(16);
+		var first = TestSupport.udp();
+		var sender = TestSupport.udp();
+
+		backend.prepare([first], null);
+		backend.events(0);
+		first.close();
+		var second = TestSupport.udp();
+
+		backend.prepare([first, second], null);
+		TestSupport.poke(sender, second);
+		Assert.same([1], waitForReady(backend, 2.0));
+
+		backend.dispose();
+		TestSupport.closeAll([second, sender]);
 	}
 
 	// The registry never lists a socket twice, but a caller of the backend

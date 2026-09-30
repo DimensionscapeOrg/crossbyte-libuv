@@ -108,12 +108,21 @@ class LibuvPoll {
 	}
 
 	#if !js
-	/** The factory `install()` registers: a libuv backend for `capacity` sockets. **/
-	public static function createBackend(capacity:Int):PollBackend {
+	/**
+		The factory `install()` registers: a libuv backend for `capacity`
+		sockets, or null when there is none to be had, this build has no
+		libuv, or libuv could not start a loop, so the registry falls back
+		to the built-in backend rather than failing the runtime.
+	**/
+	public static function createBackend(capacity:Int):Null<PollBackend> {
 		#if (cpp && crossbyte_libuv_native)
-		return new LibuvPollBackend(capacity);
+		try {
+			return new LibuvPollBackend(capacity);
+		} catch (_:Dynamic) {
+			return null;
+		}
 		#else
-		throw "crossbyte-libuv requires cpp target and -D crossbyte_libuv_native";
+		return null;
 		#end
 	}
 	#end

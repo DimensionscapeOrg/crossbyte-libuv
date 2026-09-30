@@ -56,6 +56,9 @@ LibuvPoll.isActive(someRuntime);
 it; outside a native build with `-D crossbyte_libuv_native`, `install()`
 returns `false` and the built-in backend stays.
 
+If libuv cannot start a loop (out of descriptors, say), the backend's factory
+returns null and the runtime falls back to the built-in backend.
+
 ## Building
 
 Native builds need three things resolvable by haxelib name, because the

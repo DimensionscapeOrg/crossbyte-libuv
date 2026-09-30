@@ -312,15 +312,22 @@ static void closedUnder(PollState* state, Watcher* watcher) {
 static void onPoll(uv_poll_t* handle, int status, int events);
 
 // The watcher for a socket not found at its position in the last snapshot:
-// the one kept for its descriptor, or a new one.
+// the one kept for its descriptor, or a new one. Null for anything that
+// cannot be polled, not a socket, closed, or refused by libuv, which is
+// left out rather than thrown on: a throw here left the registry dirty and
+// re-preparing, and failing, for good.
 static Watcher* watcherFor(PollState* state, hx::Object* value) {
 	hx::Object* handle = socketHandleOf(value);
 	if (handle == 0) {
-		hx::Throw(HX_CSTRING("Invalid socket handle"));
+		state->dropped++;
 		return 0;
 	}
 
 	uv_os_sock_t socket = descriptorOf(handle);
+	if (socket == CROSSBYTE_INVALID_SOCKET) {
+		state->dropped++;
+		return 0;
+	}
 
 	Watcher* watcher = state->table.find(socket);
 	if (watcher != 0) {
@@ -334,7 +341,11 @@ static Watcher* watcherFor(PollState* state, hx::Object* value) {
 		retire(state, watcher);
 	}
 
-	watcher = new Watcher();
+	watcher = new (std::nothrow) Watcher();
+	if (watcher == 0) {
+		state->dropped++;
+		return 0;
+	}
 	memset(watcher, 0, sizeof(Watcher));
 	watcher->state = state;
 	watcher->socketHandle = handle;
@@ -344,7 +355,7 @@ static Watcher* watcherFor(PollState* state, hx::Object* value) {
 
 	if (uv_poll_init_socket(&state->holder->loop, &watcher->handle, socket) != 0) {
 		delete watcher;
-		hx::Throw(HX_CSTRING("uv_poll_init_socket failed"));
+		state->dropped++;
 		return 0;
 	}
 	watcher->handle.data = watcher;
@@ -717,9 +728,10 @@ Dynamic crossbyte_libuv_poll_create(int capacity) {
 		return null();
 	}
 
+	// Null rather than a throw when libuv cannot start, so the registry's
+	// fallback to the built-in backend gets to run.
 	LoopHolder* holder = openLoop();
 	if (holder == 0) {
-		hx::Throw(HX_CSTRING("Failed to initialize libuv loop"));
 		return null();
 	}
 
