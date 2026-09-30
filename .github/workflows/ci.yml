@@ -11,10 +11,21 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HAXE_VERSION: "4.3.7"
+  # CrossByte is developed against this hxcpp fork, and stock hxcpp does not
+  # build it. Kept the same as CrossByte's own CI.
+  HXCPP_REPO: "https://github.com/dimensionscape/hxcpp.git"
+  HXCPP_REF: "production"
+
 jobs:
   tests:
-    name: Haxe tests
+    name: Interpreter and JavaScript
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout extension
@@ -31,20 +42,43 @@ jobs:
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: "4.3.7"
+          haxe-version: ${{ env.HAXE_VERSION }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # The checkouts, not copies fetched again from GitHub: haxelib git of
+      # this repository built whatever the branch held when the job reached
+      # that step, which for a pull request is not what is being tested.
       - name: Install haxelibs
         run: |
           haxelib install utest --quiet
-          haxelib git crossbyte-libuv https://github.com/${{ github.event.pull_request.head.repo.full_name || github.repository }}.git ${{ github.head_ref || github.ref_name }}
+          haxelib install hxnodejs --quiet
+          haxelib dev crossbyte "$GITHUB_WORKSPACE/crossbyte"
+          haxelib dev crossbyte-libuv "$GITHUB_WORKSPACE/crossbyte-libuv"
 
-      - name: Run non-native tests
+      - name: Run interpreter tests
         working-directory: crossbyte-libuv
         run: haxe test.hxml
+
+      # Shared code calls LibuvPoll from JavaScript builds too.
+      - name: Build for Node and the browser
+        working-directory: crossbyte-libuv
+        run: haxe js-check.hxml
+
+      - name: Run the Node build
+        working-directory: crossbyte-libuv
+        run: node export/js-check/node.js
 
   native-libuv:
     name: Native libuv backend
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout extension
@@ -61,23 +95,40 @@ jobs:
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: "4.3.7"
+          haxe-version: ${{ env.HAXE_VERSION }}
 
-      - name: Install native dependencies
+      - name: Install libuv
         run: |
           sudo apt-get update
           sudo apt-get install -y libuv1-dev
 
+      # CrossByte's native externs include their Build.xml through
+      # ${haxelib:crossbyte}, and this extension's through
+      # ${haxelib:crossbyte-libuv}, so both have to resolve by name.
       - name: Install haxelibs
         run: |
           haxelib install utest --quiet
-          haxelib install hxcpp --quiet
-          haxelib git crossbyte-libuv https://github.com/${{ github.event.pull_request.head.repo.full_name || github.repository }}.git ${{ github.head_ref || github.ref_name }}
+          haxelib git hxcpp ${{ env.HXCPP_REPO }} ${{ env.HXCPP_REF }}
+          haxelib dev crossbyte "$GITHUB_WORKSPACE/crossbyte"
+          haxelib dev crossbyte-libuv "$GITHUB_WORKSPACE/crossbyte-libuv"
 
+      - name: Bootstrap hxcpp tools
+        run: |
+          set -euo pipefail
+          HXCPP_DIR="$(haxelib path hxcpp | head -n 1)"
+          (cd "$HXCPP_DIR/tools/run" && haxe compile.hxml)
+          (cd "$HXCPP_DIR/tools/hxcpp" && haxe compile.hxml)
+
+      # With libuv's location passed explicitly, as a build against a libuv
+      # outside the default paths does: LIBUV_LIB once linked with the MSVC
+      # spelling -libpath: everywhere, which GCC refuses. CrossByte's own CI
+      # builds this suite without them.
       - name: Build native tests
         working-directory: crossbyte-libuv
-        run: haxe native-test.hxml
+        run: haxe native-test.hxml -D LIBUV_INCLUDE=/usr/include -D LIBUV_LIB=/usr/lib/x86_64-linux-gnu
 
       - name: Run native tests
         working-directory: crossbyte-libuv
-        run: ../crossbyte/export/crossbyte-libuv-native-test/LibuvNativeTestMain
+        run: |
+          ulimit -n 65536 || true
+          ../crossbyte/export/crossbyte-libuv-native-test/LibuvNativeTestMain

@@ -1,0 +1,15 @@
+# LibuvPoll has to compile wherever CrossByte does: shared code calls it
+# from JavaScript builds too: and answer that there is no backend there.
+# Run the Node build afterwards: node export/js-check/node.js
+-cp src
+-cp tests
+-lib crossbyte
+-lib hxnodejs
+-main JsCheck
+--js export/js-check/node.js
+--next
+-cp src
+-cp tests
+-lib crossbyte
+-main JsCheck
+--js export/js-check/browser.js

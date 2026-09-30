@@ -1,0 +1,9 @@
+# Native benchmark of the libuv backend against the built-in one. Needs
+# libuv (see README.md) and a descriptor limit above 10,000 to run:
+#   haxe bench.hxml && ulimit -n 65536 && export/bench/PollBench
+-cp src
+-cp bench
+-lib crossbyte
+-D crossbyte_libuv_native
+-main PollBench
+--cpp export/bench
