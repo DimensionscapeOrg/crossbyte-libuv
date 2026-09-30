@@ -30,6 +30,7 @@ class LibuvNativeTestMain {
 			#if (cpp && crossbyte_libuv_native)
 			new LibuvWatcherTest(),
 			new LibuvTimeoutTest(),
+			new LibuvReadyBatchTest(),
 			new LibuvRuntimeTest(),
 			#if linux
 			new LibuvStaleRegistrationTest(),

@@ -91,7 +91,9 @@ struct Watcher {
 	int listIndex;
 	// The prepare that last found the socket in a list.
 	unsigned int seen;
-	// The events() call that last reported it readable, or writable.
+	// The events() call that last reported it readable, or writable. libuv
+	// polls again, without blocking, while a batch of 1,024 comes back full,
+	// and a level-triggered socket comes back in every one of them.
 	unsigned int reportedRead;
 	unsigned int reportedWrite;
 	// The events() call that started it polling, so it is known whether a
@@ -171,6 +173,8 @@ struct PollState {
 	std::vector<int> readReady;
 	std::vector<int> writeReady;
 	std::vector<Watcher*> suspects;
+	// Sockets reported for the first time in this events() call, this pass.
+	int fresh;
 	unsigned int prepareGeneration;
 	unsigned int callGeneration;
 	bool stale;
@@ -519,15 +523,19 @@ static void onPoll(uv_poll_t* handle, int status, int events) {
 	}
 
 	bool reported = false;
-	if ((status < 0 || (events & UV_READABLE)) && watcher->readIndex >= 0) {
+	if ((status < 0 || (events & UV_READABLE)) && watcher->readIndex >= 0 && watcher->reportedRead != state->callGeneration) {
 		watcher->reportedRead = state->callGeneration;
 		state->readReady.push_back(watcher->readIndex);
 		reported = true;
 	}
-	if ((status < 0 || (events & UV_WRITABLE)) && watcher->writeIndex >= 0) {
+	if ((status < 0 || (events & UV_WRITABLE)) && watcher->writeIndex >= 0 && watcher->reportedWrite != state->callGeneration) {
 		watcher->reportedWrite = state->callGeneration;
 		state->writeReady.push_back(watcher->writeIndex);
 		reported = true;
+	}
+
+	if (reported) {
+		state->fresh++;
 	}
 
 #if defined(__linux__)
@@ -723,6 +731,7 @@ Dynamic crossbyte_libuv_poll_create(int capacity) {
 	state->holder = holder;
 	state->prepareGeneration = 0;
 	state->callGeneration = 1;
+	state->fresh = 0;
 	state->stale = false;
 	state->buried = 0;
 	state->created = 0;
@@ -785,8 +794,19 @@ void crossbyte_libuv_poll_events(Dynamic handle, double timeout) {
 		uv_timer_start(timer, onTimer, (uint64_t)std::ceil(timeout * 1000.0), 0);
 	}
 
+	state->fresh = 0;
 	hx::EnterGCFreeZone();
 	uv_run(loop, timeout == 0 ? UV_RUN_NOWAIT : UV_RUN_DEFAULT);
+#if defined(_WIN32)
+	// libuv takes at most 128 completions from the port in a pass
+	// (win/core.c), and the first report ends the run, so with more sockets
+	// ready than that one call reported only 128 of them. More passes,
+	// without waiting, while a pass still brings a full batch not yet seen.
+	for (int pass = 0; pass < 64 && state->fresh >= 128; ++pass) {
+		state->fresh = 0;
+		uv_run(loop, UV_RUN_NOWAIT);
+	}
+#endif
 	hx::ExitGCFreeZone();
 
 	if (timed) {

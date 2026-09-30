@@ -5,6 +5,14 @@ All notable changes to crossbyte-libuv will be documented in this file.
 ## Unreleased
 
 ### Fixed
+- Each ready socket is reported once per wait. libuv takes 1,024 events
+  from the kernel at a time and polls again, without blocking, while a
+  batch comes back full, up to 48 times, and a level-triggered socket
+  is in every batch it is still ready for; each report was passed on, so
+  with more than 1,024 sockets ready some were dispatched twice and the
+  list was cut short at capacity. On Windows the opposite: libuv takes 128
+  completions at a time and the first report ended the wait, so one call
+  reported at most 128 ready sockets and the rest waited for later calls.
 - A change to the socket set costs what changed. Every register or
   deregister closed every watcher, ran the loop until they were freed and
   made them all again, each found by a linear scan: 3.7 ms per change at
