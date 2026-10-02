@@ -68,9 +68,9 @@ struct LoopHolder {
 	uv_timer_t timer;
 };
 
-// One uv_poll_t per socket, kept from one prepare to the next. It used to be
-// torn down and made again for every socket whenever any one socket joined or
-// left: seven kernel calls a socket, 75 ms a change at 10,000 sockets.
+// One uv_poll_t per socket, kept from one prepare to the next, so a socket
+// joining or leaving costs that socket's watcher and not a rebuild of every
+// watcher in the set.
 struct Watcher {
 	uv_poll_t handle;
 	PollState* state;
@@ -220,8 +220,8 @@ static LoopHolder* openLoop() {
 	return holder;
 }
 
-// Closes whatever is still open on a loop, its watchers, which are freed as
-// they close, and its timer, and then the loop: its epoll set goes with it,
+// Closes whatever is still open on a loop (its watchers, which are freed as
+// they close, and its timer) and then the loop: its epoll set goes with it,
 // and so does anything registered there that could no longer be named.
 static void closeLoop(LoopHolder* holder) {
 	uv_walk(&holder->loop, closeHandle, 0);
@@ -278,17 +278,17 @@ static void retire(PollState* state, Watcher* watcher) {
 	state->retiredCount++;
 }
 
-// A watcher whose descriptor was closed while it was still polling, which
-// is what CrossByte does today: the socket is closed first and deregistered
-// afterwards, where libuv needs polling stopped before the close.
+// A watcher whose descriptor was closed while it was still polling. CrossByte
+// closes a socket first and deregisters it afterwards, where libuv needs
+// polling stopped before the close.
 //
 // Usually that is harmless: closing the last reference to a socket takes it
-// out of every epoll set. When another reference lives on, a child process
-// that inherited the descriptor, the registration outlives the close, can
+// out of every epoll set. When another reference lives on (a child process
+// that inherited the descriptor), the registration outlives the close, can
 // no longer be removed by descriptor, and fires for as long as the socket is
-// ready: libuv then re-polls without sleeping until its timeout is spent
-// (189,806 epoll_wait calls in one 100 ms wait). So on Linux the watcher is
-// left in the loop, reporting nothing, as a tombstone. If it ever fires,
+// ready: libuv then re-polls without sleeping until its timeout is spent.
+// So on Linux the watcher is left in the loop, reporting nothing, as a
+// tombstone. If it ever fires,
 // the registration is stale and the next events() moves every live watcher
 // to a fresh loop, whose epoll set does not have it. If the descriptor is
 // reused first, the tombstone goes and the new socket's watcher takes its
@@ -313,9 +313,9 @@ static void onPoll(uv_poll_t* handle, int status, int events);
 
 // The watcher for a socket not found at its position in the last snapshot:
 // the one kept for its descriptor, or a new one. Null for anything that
-// cannot be polled, not a socket, closed, or refused by libuv, which is
-// left out rather than thrown on: a throw here left the registry dirty and
-// re-preparing, and failing, for good.
+// cannot be polled (not a socket, closed, or refused by libuv), which is
+// left out rather than thrown on: a throw here would leave the registry
+// dirty, preparing again and failing again at every update.
 static Watcher* watcherFor(PollState* state, hx::Object* value) {
 	hx::Object* handle = socketHandleOf(value);
 	if (handle == 0) {
@@ -397,8 +397,8 @@ static void walk(PollState* state, Array<Dynamic>& sockets, int length, std::vec
 		int& index = readable ? watcher->readIndex : watcher->writeIndex;
 		if (index >= 0) {
 			// The same socket twice in one list: its first place answers for
-			// it, and only one place may point at a watcher, retiring it
-			// forgets that one.
+			// it. Only one place may point at a watcher, because retiring it
+			// forgets only that one.
 			lastWatchers[i] = 0;
 			continue;
 		}
@@ -798,10 +798,10 @@ void crossbyte_libuv_poll_events(Dynamic handle, double timeout) {
 	uv_timer_t* timer = &state->holder->timer;
 	bool timed = timeout > 0;
 	if (timed) {
-		// From the time now, not the time the loop last looked: a host that
-		// pumps every 16 ms with a 5 ms budget armed a timer already due, and
-		// libuv runs due timers before it polls, so the wait ended before it
-		// began and no socket event was ever seen.
+		// From the time now, not the time the loop last looked. A host that
+		// pumps once a frame with a few milliseconds to wait would otherwise
+		// arm a timer that is already due, and libuv runs due timers before it
+		// polls, so the wait would end before it began and see no socket.
 		uv_update_time(loop);
 		uv_timer_start(timer, onTimer, (uint64_t)std::ceil(timeout * 1000.0), 0);
 	}
@@ -811,9 +811,9 @@ void crossbyte_libuv_poll_events(Dynamic handle, double timeout) {
 	uv_run(loop, timeout == 0 ? UV_RUN_NOWAIT : UV_RUN_DEFAULT);
 #if defined(_WIN32)
 	// libuv takes at most 128 completions from the port in a pass
-	// (win/core.c), and the first report ends the run, so with more sockets
-	// ready than that one call reported only 128 of them. More passes,
-	// without waiting, while a pass still brings a full batch not yet seen.
+	// (win/core.c), and the first report ends the run. More passes, without
+	// waiting, while a pass still brings a full batch not yet seen, so one
+	// call reports more than 128 ready sockets.
 	for (int pass = 0; pass < 64 && state->fresh >= 128; ++pass) {
 		state->fresh = 0;
 		uv_run(loop, UV_RUN_NOWAIT);

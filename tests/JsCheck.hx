@@ -2,8 +2,8 @@ import crossbyte.libuv.LibuvPoll;
 
 /**
 	Built for Node and for the browser by js-check.hxml. Shared code that
-	installs the backend has to compile there, it failed with "Type not
-	found : PollBackendRegistry", and find that there is nothing to install.
+	installs the backend has to compile there, and find that there is nothing
+	to install.
 **/
 class JsCheck {
 	public static function main():Void {

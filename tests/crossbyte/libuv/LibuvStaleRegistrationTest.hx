@@ -13,8 +13,8 @@ import utest.Assert;
 	A second descriptor made with dup() stands in for the child here.
 **/
 class LibuvStaleRegistrationTest extends utest.Test {
-	// With no watcher left for the descriptor, libuv re-polled without
-	// sleeping for the whole wait: 189,806 epoll_wait calls in 100 ms.
+	// With no watcher left for the descriptor, libuv would re-poll without
+	// sleeping for the whole wait. The waits must sleep, after one purge.
 	public function testWaitSleepsAfterAClosedSocketStaysReady():Void {
 		var backend = new LibuvPollBackend(16);
 		var keep = TestSupport.udp();
@@ -26,7 +26,7 @@ class LibuvStaleRegistrationTest extends utest.Test {
 		var held = TestSupport.duplicate(TestSupport.descriptor(closing));
 		var port = closing.host().port;
 
-		// Closed first and removed after, the order CrossByte uses today.
+		// Closed first and removed after, the order CrossByte uses.
 		closing.close();
 		backend.prepare([keep], null);
 		// Its file becomes ready under a descriptor nothing polls any more.
@@ -55,8 +55,8 @@ class LibuvStaleRegistrationTest extends utest.Test {
 	}
 
 	// The descriptor is reused first, so the stale registration answers for
-	// the new socket: it was reported ready on every call, with nothing to
-	// read, and a POLL loop spun on it.
+	// the new socket, which would be reported ready on every call with
+	// nothing to read. The streak check must catch it and purge the loop.
 	public function testReusedDescriptorDoesNotAnswerForTheClosedSocket():Void {
 		var backend = new LibuvPollBackend(16);
 		var closing = TestSupport.udp();
@@ -97,8 +97,8 @@ class LibuvStaleRegistrationTest extends utest.Test {
 		TestSupport.closeAll([reuser, sender]);
 	}
 
-	// remove() before close(), the order libuv needs, and the one the
-	// registry can use, leaves nothing behind to purge.
+	// remove() before close() (the order libuv needs, and the one the
+	// registry can use) leaves nothing behind to purge.
 	public function testRemovedBeforeCloseLeavesNothingToPurge():Void {
 		var backend = new LibuvPollBackend(16);
 		var keep = TestSupport.udp();

@@ -25,11 +25,11 @@ class LibuvPoll {
 		(not cpp, or no `-D crossbyte_libuv_native`), and true when it is
 		installed, including when it already was.
 
-		Call it before the first runtime exists, in `main`, before the
+		Call it before the first runtime exists: in `main`, before the
 		`Application` or `ServerApplication` is made. A runtime reads the
 		backend when it is created and again each time its socket set outgrows
-		its capacity, so installing afterwards moved a running runtime to
-		libuv silently at its 1,025th socket.
+		its capacity, so installing later would switch a running runtime to
+		libuv partway through, silently.
 
 		@throws IllegalOperationError When a CrossByte runtime already exists.
 	**/
@@ -88,7 +88,7 @@ class LibuvPoll {
 	}
 
 	/**
-		Whether `runtime`, the calling thread's by default, polls its
+		Whether `runtime` (the calling thread's by default) polls its
 		sockets through libuv. False on a thread with no runtime.
 	**/
 	public static function isActive(?runtime:CrossByte):Bool {
@@ -110,8 +110,8 @@ class LibuvPoll {
 	#if !js
 	/**
 		The factory `install()` registers: a libuv backend for `capacity`
-		sockets, or null when there is none to be had, this build has no
-		libuv, or libuv could not start a loop, so the registry falls back
+		sockets, or null when there is none to be had (this build has no
+		libuv, or libuv could not start a loop), so the registry falls back
 		to the built-in backend rather than failing the runtime.
 	**/
 	public static function createBackend(capacity:Int):Null<PollBackend> {

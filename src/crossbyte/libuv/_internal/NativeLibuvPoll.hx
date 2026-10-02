@@ -2,11 +2,10 @@ package crossbyte.libuv._internal;
 
 #if (cpp && crossbyte_libuv_native)
 // The linker flags follow the compiler, not the OS: `-libpath:` and `.lib`
-// names are MSVC's, and handing `-libpath:` to GCC or Clang failed every
-// non-Windows link that set LIBUV_LIB. With MSVC, `uv.lib` is the import
-// library of libuv's `uv.dll`, which then has to ship beside the executable;
-// `-D LIBUV_STATIC` links the static `libuv.lib` instead. Both names are
-// what libuv's CMake build produces.
+// names are MSVC's, and GCC and Clang refuse `-libpath:`. With MSVC,
+// `uv.lib` is the import library of libuv's `uv.dll`, which then has to ship
+// beside the executable; `-D LIBUV_STATIC` links the static `libuv.lib`
+// instead. Both names are what libuv's CMake build produces.
 @:buildXml("
 <files id='haxe'>
 	<compilerflag value='-I${haxelib:crossbyte-libuv}/native'/>

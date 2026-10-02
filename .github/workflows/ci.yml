@@ -50,8 +50,8 @@ jobs:
           node-version: "20"
 
       # The checkouts, not copies fetched again from GitHub: haxelib git of
-      # this repository built whatever the branch held when the job reached
-      # that step, which for a pull request is not what is being tested.
+      # this repository would build whatever the branch holds when the job
+      # reaches that step, which for a pull request is not what is tested.
       - name: Install haxelibs
         run: |
           haxelib install utest --quiet
@@ -120,9 +120,8 @@ jobs:
           (cd "$HXCPP_DIR/tools/hxcpp" && haxe compile.hxml)
 
       # With libuv's location passed explicitly, as a build against a libuv
-      # outside the default paths does: LIBUV_LIB once linked with the MSVC
-      # spelling -libpath: everywhere, which GCC refuses. CrossByte's own CI
-      # builds this suite without them.
+      # outside the default paths does, so the LIBUV_LIB flags are checked
+      # with GCC. CrossByte's own CI builds this suite without them.
       - name: Build native tests
         working-directory: crossbyte-libuv
         run: haxe native-test.hxml -D LIBUV_INCLUDE=/usr/include -D LIBUV_LIB=/usr/lib/x86_64-linux-gnu

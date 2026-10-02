@@ -80,8 +80,8 @@ class LibuvPollBackend implements PollBackend {
 	/**
 		Stops polling `socket` now rather than at the next `prepare`: the way
 		to leave the poll set before the socket is closed, which is the order
-		libuv needs. A socket closed while it is still polled is handled,
-		see the native side's `closedUnder`, but can leave the kernel a
+		libuv needs. A socket closed while it is still polled is handled (see
+		the native side's `closedUnder`), but can leave the kernel a
 		registration only a fresh loop gets rid of.
 	**/
 	public function remove(socket:Socket):Void {

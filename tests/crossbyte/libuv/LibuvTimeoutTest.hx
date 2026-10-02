@@ -15,10 +15,10 @@ import utest.Assert;
 	A timed wait must poll, however long ago the loop last looked at its clock.
 **/
 class LibuvTimeoutTest extends utest.Test {
-	// The wait's timer was armed from the loop's cached clock, which a host
-	// that pumps once a frame leaves one frame stale, longer than the wait
-	// itself. libuv runs due timers before it polls, so the timer stopped the
-	// loop before the poll, every time.
+	// A host that pumps once a frame leaves the loop's cached clock one frame
+	// stale, longer than the wait itself. libuv runs due timers before it
+	// polls, so a timer armed from that clock would stop the loop before the
+	// poll; the wait must arm it from the time now.
 	public function testTimedWaitPollsWhenTheLoopClockIsStale():Void {
 		var backend = new LibuvPollBackend(16);
 		var target = TestSupport.udp();
@@ -38,7 +38,7 @@ class LibuvTimeoutTest extends utest.Test {
 	}
 
 	// HostApplication's advance(1/60, 0.005), as a host framework calls it,
-	// with a peer that sends a byte a second. None of them arrived.
+	// with a peer that sends a byte a second. Every byte must arrive.
 	public function testHostDrivenPumpWithASocketTimeoutReceives():Void {
 		var runtime = CrossByte.current();
 		Assert.isTrue(LibuvPoll.isActive(runtime));

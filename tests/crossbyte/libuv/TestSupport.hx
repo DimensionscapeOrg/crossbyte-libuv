@@ -19,8 +19,8 @@ class TestSupport {
 	/**
 		A UDP socket bound to an ephemeral loopback port no other socket made
 		here has had. hxcpp sets SO_REUSEADDR before binding, and Linux then
-		hands two UDP sockets the same ephemeral port now and then, 27 of
-		1,500 once, and only one of them receives what is sent to it.
+		hands two UDP sockets the same ephemeral port now and then, and only
+		one of them receives what is sent to it.
 
 		A socket that drew a taken port is closed before the next try, so the
 		one returned still gets the lowest free descriptor: the tests that

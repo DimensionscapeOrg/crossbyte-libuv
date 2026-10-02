@@ -10,7 +10,7 @@ import sys.net.UdpSocket;
 
 /**
 	What a poll backend costs a server: a prepare when one socket joins or
-	leaves the set, which the registry does on every accept and every close,
+	leaves the set (which the registry does on every accept and every close),
 	and a wait with a few sockets ready.
 
 	haxe bench.hxml, then run the binary with a descriptor limit above
@@ -50,8 +50,8 @@ class PollBench {
 		backend.events(0);
 		var first = Timer.stamp() - start;
 
-		// One socket leaves, the way the registry's DenseSet removes it, the
-		// last one moves into the gap, and comes back.
+		// One socket leaves, the way the registry's DenseSet removes it (the
+		// last one moves into the gap), and comes back.
 		var rounds = 0;
 		start = Timer.stamp();
 		var budget = start + 2.0;

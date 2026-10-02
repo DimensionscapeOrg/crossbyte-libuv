@@ -10,9 +10,9 @@ import utest.Assert;
 **/
 class LibuvReadyBatchTest extends utest.Test {
 	// libuv takes 1,024 events at a time and, while a batch comes back full,
-	// polls again without blocking, up to 48 times, and a level-triggered
-	// socket is in every batch it is still ready for. Each report was passed
-	// on, so sockets were dispatched twice and the list was cut at capacity.
+	// polls again without blocking (up to 48 times); a level-triggered socket
+	// is in every batch it is still ready for. Each must be reported once, and
+	// the list must not be cut short at capacity.
 	public function testEachReadySocketIsReportedOnce():Void {
 		var count = 1500;
 		var backend = new LibuvPollBackend(2048);

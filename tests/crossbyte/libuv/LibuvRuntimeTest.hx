@@ -19,7 +19,7 @@ import utest.Assert;
 **/
 class LibuvRuntimeTest extends utest.Test {
 	// Connections opened and closed one after another: each close is the
-	// runtime's own, the socket closed first and deregistered after, and
+	// runtime's own (the socket closed first and deregistered after), and
 	// each new connection is handed the descriptor the last one had. Every
 	// echo has to come back, through watchers kept across all of it.
 	public function testConnectionChurnThroughTheRuntime():Void {
@@ -99,7 +99,7 @@ class LibuvRuntimeTest extends utest.Test {
 		var after = backend.stats();
 		Assert.equals(0, after.watchers, 'watchers left behind: ${after.watchers}');
 		// One watcher for each connection, and one for the listener: core
-		// watches listeners through the backend as well (dc59281).
+		// watches listeners through the backend as well.
 		Assert.equals(connections + 1, after.created - before.created, "watchers made for 200 connections and their listener");
 		Assert.equals(0, after.purges - before.purges);
 		Assert.equals(0, after.dropped - before.dropped);

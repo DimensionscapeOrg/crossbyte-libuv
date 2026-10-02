@@ -4,10 +4,13 @@
 	"license": "Apache",
 	"tags": ["crossbyte", "libuv", "networking", "poll", "cpp"],
 	"description": "Optional libuv poll backend extension for CrossByte",
-	"version": "0.0.1",
-	"releasenote": "Initial extension scaffold",
+	"version": "1.0.0",
+	"releasenote": "1.0.0: the libuv poll backend for CrossByte 1.0.0's socket registry.",
 	"contributors": [
 		"Dimensionscape"
 	],
-	"classPath": "src"
+	"classPath": "src",
+	"dependencies": {
+		"crossbyte": ""
+	}
 }

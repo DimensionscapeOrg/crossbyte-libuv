@@ -31,9 +31,10 @@ class LibuvPollTest extends utest.Test {
 		Assert.isTrue(LibuvPoll.isInstalled());
 	}
 
-	// A runtime made before install() used to move to libuv without a word
-	// at its 1,025th socket, when its registry grew and asked the registry
-	// for a backend again; uninstall() did the same the other way.
+	// A runtime made before install() would move to libuv without a word
+	// when its socket set outgrew its capacity and it asked the registry for
+	// a backend again; uninstall() would do the same the other way. Both
+	// refuse instead.
 	public function testInstallAndUninstallRefuseOnceARuntimeExists():Void {
 		var factory = @:privateAccess LibuvPoll.__factory;
 
@@ -79,10 +80,10 @@ class LibuvPollTest extends utest.Test {
 		TestSupport.closeAll([peer, client, server]);
 	}
 
-	// The factory threw where the registry expects null, so a libuv that
-	// could not start took the runtime down instead of leaving it on the
-	// built-in backend. A bad capacity used to come back as a backend with
-	// no loop, which threw at its first use.
+	// The registry expects null from a factory that cannot make a backend,
+	// so a libuv that cannot start leaves the runtime on the built-in
+	// backend instead of failing it. A bad capacity answers null too, not a
+	// backend with no loop that throws at its first use.
 	public function testFactoryAnswersNullWhenNoLoopCanStart():Void {
 		Assert.isNull(LibuvPoll.createBackend(-1));
 		Assert.isNull(LibuvPoll.createBackend(2000000));

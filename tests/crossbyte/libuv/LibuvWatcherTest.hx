@@ -10,9 +10,8 @@ import utest.Assert;
 	polled, under its own descriptor, after it.
 **/
 class LibuvWatcherTest extends utest.Test {
-	// Every register or deregister closed all the watchers, ran the loop
-	// until they were freed and made them all again: 129 made and 64 closed
-	// here for one socket joining, where one is made.
+	// One socket joining makes one watcher, and one leaving retires one; the
+	// rest are kept as they are.
 	public function testJoiningOrLeavingChangesOnlyThatSocket():Void {
 		var backend = new LibuvPollBackend(128);
 		var sockets = TestSupport.udps(64);
@@ -90,9 +89,9 @@ class LibuvWatcherTest extends utest.Test {
 		TestSupport.closeAll([socket, other, sender]);
 	}
 
-	// A closed socket, or a null, among the sockets used to fail the prepare
-	// with a throw, and the registry, left dirty, prepared again and threw
-	// again at every update after, so nothing was polled for good.
+	// A closed socket, or a null, among the sockets is left out, and the rest
+	// are polled. A throw would leave the registry dirty, preparing again and
+	// throwing again at every update, so nothing would ever be polled.
 	public function testUnpollableEntriesAreLeftOut():Void {
 		var backend = new LibuvPollBackend(16);
 		var closed = TestSupport.udp();
@@ -109,7 +108,7 @@ class LibuvWatcherTest extends utest.Test {
 		TestSupport.closeAll([live, sender]);
 	}
 
-	// Watchers are found by descriptor now, and descriptors are reused: a
+	// Watchers are found by descriptor, and descriptors are reused: a
 	// socket that takes a closed one's number must get its own watcher, not
 	// inherit the old one's registration.
 	public function testReusedDescriptorIsPolledForTheNewSocket():Void {
@@ -122,7 +121,7 @@ class LibuvWatcherTest extends utest.Test {
 		backend.events(0);
 		var descriptor = TestSupport.descriptor(first);
 
-		// Closed first and removed after, the order CrossByte uses today.
+		// Closed first and removed after, the order CrossByte uses.
 		first.close();
 		var second = TestSupport.udp();
 		#if linux
@@ -203,9 +202,9 @@ class LibuvWatcherTest extends utest.Test {
 		TestSupport.closeAll([twice, other, sender]);
 	}
 
-	// A socket asked to leave with remove(), before it is closed, the
-	// order libuv needs, is gone at once, and the next prepare does not
-	// bring it back.
+	// A socket asked to leave with remove() before it is closed (the order
+	// libuv needs) is gone at once, and the next prepare does not bring it
+	// back.
 	public function testRemoveStopsPollingAtOnce():Void {
 		var backend = new LibuvPollBackend(16);
 		var keep = TestSupport.udp();
