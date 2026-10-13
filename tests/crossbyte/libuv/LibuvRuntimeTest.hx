@@ -35,7 +35,7 @@ class LibuvRuntimeTest extends utest.Test {
 			accepted++;
 			var peer:CBSocket = e.socket;
 			peer.addEventListener(ProgressEvent.SOCKET_DATA, _ -> {
-				peer.writeUTFBytes(peer.readUTFBytes(peer.bytesAvailable));
+				peer.writeUtfBytes(peer.readUtfBytes(peer.bytesAvailable));
 				peer.flush();
 			});
 			peer.addEventListener(Event.CLOSE, _ -> closed++);

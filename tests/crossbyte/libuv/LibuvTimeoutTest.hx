@@ -68,7 +68,7 @@ class LibuvTimeoutTest extends utest.Test {
 		var client = new CBSocket();
 		var received = "";
 		client.addEventListener(ProgressEvent.SOCKET_DATA, _ -> {
-			received += client.readUTFBytes(client.bytesAvailable);
+			received += client.readUtfBytes(client.bytesAvailable);
 		});
 		client.connect("127.0.0.1", port);
 
